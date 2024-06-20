@@ -1,6 +1,6 @@
 import passport from "passport";
 import local from "passport-local";
-import { createHash } from "../utils/hasPassword.js";
+import { createHash, isValidPassword } from "../utils/hasPassword.js";
 import userDao from "../dao/mongoDao/user.dao.js";
 
 const localStrategy = local.Strategy;
@@ -31,6 +31,21 @@ const initializePassport = () => {
                 }
             }
         ));
+
+        passport.use(
+            "login",
+            new localStrategy({ usernameField: "email" }, async (username, password, done) => {
+              try {
+                const user = await userDao.getByEmail(username);
+                if (!user || !isValidPassword(user, password)) return done(null, false, { message: "email o password inválidos" });
+        
+                // Si están bien los datos del usuario
+                return done(null, user);
+              } catch (error) {
+                done(error);
+              }
+            })
+          );
 
         passport.serializeUser(( user, done) => {
             done(null, user._id)
